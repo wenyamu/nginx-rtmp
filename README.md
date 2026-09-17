@@ -37,7 +37,7 @@ rtmp {
             hls on; # 开启HLS
             hls_path /mnt/hls/; # HLS 切片存放路径
             hls_fragment 3; # 每个切片时长（秒），越小延迟越低，但请求越多
-            hls_playlist_length 60; # 播放列表长度
+            hls_playlist_length 60; # 设置 HLS 播放列表（.m3u8 文件）中包含的视频总时长（秒）
             # 禁用以 RTMP 协议从 Nginx 服务器拉取视频流。禁用后无法通过 VLC播放器、http网页播放器观看直播
             #deny play all;
         }
