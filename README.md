@@ -150,7 +150,7 @@ server {
         }
         
         location /stat.xsl {
-            root /mnt; # stat.xsl 文件的实际路径
+            root /mnt; # stat.xsl 文件的实际路径，此文件在编译时下载的 nginx-rtmp-module-src 目录下
             
             # 强制设置 Content-Type 为 text/xml，告诉浏览器这是可阅读的 XML，防止下载
             default_type text/xml;
@@ -162,12 +162,18 @@ server {
 ```
 
 ## 发送命令录制
-> x.x.x.x:8080/control/record
+> x.x.x.x:8080/control/record 命令地址，与 8080 监听块中的设置对应
+> 
 > start 开始录制
+> 
 > stop  结束录制
+> 
 > app   application show {......} 中的 show 与服务器ip 组成服务器推流地址 rtmp://x.x.x.x:1935/show
+> 
 > name  推流码
+> 
 > rec   recorder full_rec { record all manual; ......} 中的 full_rec
+> 
 ```
 # 开始录制
 curl "http://x.x.x.x:8080/control/record/start?app=show&name=abc123456&rec=full_rec"
