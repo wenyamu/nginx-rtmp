@@ -323,3 +323,5 @@ location / {
 > 可以直接打开网页  http://x.x.x.x 点击看直播
 >
 > 也可以通过播放器打开 http://x.x.x.x/hls/abc123456.m3u8 或 rtmp://x.x.x.x:1935/show/abc123456 看直播
+>
+> 还可以通过 http://x.x.x.x:8080/stat 查看数据
