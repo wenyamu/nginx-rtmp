@@ -150,7 +150,7 @@ server {
         }
         
         location /stat.xsl {
-            root /mnt; # stat.xsl 文件的实际路径，此文件在编译时下载的 nginx-rtmp-module-src 目录下
+            root /mnt; # stat.xsl 文件的实际路径，此文件是从编译时下载的 nginx-rtmp-module-src 目录下复制过来的
             
             # 强制设置 Content-Type 为 text/xml，告诉浏览器这是可阅读的 XML，防止下载
             default_type text/xml;
