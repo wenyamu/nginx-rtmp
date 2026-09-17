@@ -24,7 +24,7 @@ make install
 ### 修改nginx配置文件，放在 http{......} 前
 > application show {......} 中的 show 与服务器ip 组成服务器推流地址 rtmp://x.x.x.x:1935/show
 
-> /usr/local/nginx/conf/nginx.conf
+> 编译安装nginx后，配置文件路径 /usr/local/nginx/conf/nginx.conf
 ```
 # RTMP configuration
 rtmp {
