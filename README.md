@@ -4,6 +4,36 @@
 > 北京
 > Debian12.10
 
+## 省时版
+> 开启端口和obs直播设置，以及使用 curl 录制命令，要向下看一看
+```
+apt update && \
+apt install -y build-essential git libpcre3 libpcre3-dev libssl-dev zlib1g-dev unzip && \
+cd /root && \
+git clone https://github.com/wenyamu/nginx-rtmp.git && \
+cd nginx-rtmp && \
+tar -xf nginx-1.31.6.tar.gz && \
+unzip nginx-rtmp-module-src-master.zip && \
+cd nginx-1.31.6 && \
+./configure --with-http_ssl_module --add-module=../nginx-rtmp-module-src-master --with-file-aio && \
+make -j 1 && \
+make install && \
+cd /root/nginx-rtmp && \
+cp -f index.html /mnt/index.html && \
+cp -f nginx.conf /usr/local/nginx/conf/nginx.conf && \
+cp -f nginx-rtmp-module-src-master/stat.xsl /mnt/stat.xsl && \
+mkdir -p /mnt/recordings && \
+mkdir -p /mnt/manual_recordings && \
+mkdir -p /mnt/back_recordings && \
+chown -R nobody:nogroup /mnt/recordings && \
+chown -R nobody:nogroup /mnt/manual_recordings && \
+chown -R nobody:nogroup /mnt/back_recordings && \
+chmod 755 /mnt/recordings && \
+chmod 755 /mnt/manual_recordings && \
+chmod 755 /mnt/back_recordings && \
+/usr/local/nginx/sbin/nginx
+```
+
 ## 1. 编译安装 nginx
 > 加入支持 rtmp 协议的模块
 
