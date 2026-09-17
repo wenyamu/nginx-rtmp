@@ -320,4 +320,4 @@ location / {
 ```
 
 ### http://x.x.x.x 直接打开网页看直播
-> http://x.x.x.x/mnt/hls/abc123456.m3u8
+> http://x.x.x.x/hls/abc123456.m3u8
