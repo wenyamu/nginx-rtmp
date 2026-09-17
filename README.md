@@ -31,13 +31,72 @@ rtmp {
     server {
         listen 1935; # 监听标准RTMP端口
         chunk_size 4000;
-
+        
         application show {
             live on;
+            
+            #自动录制，视频和音频, 用于监测移动物体时合成使用 1分钟一个文件
+            recorder auto_full_60 {
+              record all; # 自动录制
+              record_path /mnt/recordings; # 指定存储路径
+              record_unique on;        # 文件名加时间戳，相当于自定义中的 %s，避免覆盖
+              
+              #record_suffix .flv; # 指定后缀名（可选，开启时间戳时，默认名是 推流码-1789636031.flv）
+              #record_suffix -%Y%m%d-%H%M%S.flv; # 自定义文件名格式（可选，开启时间戳时，默认是 推流码-1789636031-自定义.flv）
+              
+              #这二个同时启用好像有点问题，好像不是连续录，后续再研究把前后两个视频拼起来看是否连续
+              record_interval 60; # 录制单个文件的时长（秒）自动切割一次文件，仅自动录制时有效
+              #record_max_size 10M; # 每个文件最大 10MB，超过后自动新建文件，仅自动录制时有效
+              
+            }
+            
+            
+            #自动录制，视频和音频 用于正常的监控备份 30分钟一个文件
+            recorder auto_full_1800 {
+              record all; # 自动录制
+              record_path /mnt/back_recordings; # 指定存储路径
+              record_unique on;        # 文件名加时间戳，相当于自定义中的 %s，避免覆盖
+              
+              #record_suffix .flv; # 指定后缀名（可选，开启时间戳时，默认名是 推流码-1789636031.flv）
+              #record_suffix -%Y%m%d-%H%M%S.flv; # 自定义文件名格式（可选，开启时间戳时，默认是 推流码-1789636031-自定义.flv）
+              
+              #这二个同时启用好像有点问题，好像不是连续录，后续再研究把前后两个视频拼起来看是否连续
+              record_interval 1800; # 录制单个文件的时长（秒）自动切割一次文件，仅自动录制时有效
+              #record_max_size 10M; # 每个文件最大 10MB，超过后自动新建文件，仅自动录制时有效
+              
+            }
+            
+            #手动录制，视频和音频 all
+            recorder full_rec {
+              record all manual; # 手动录制
+              record_path /mnt/manual_recordings; # 指定存储路径
+              record_unique on;        # 文件名加时间戳，相当于自定义中的 %s，避免覆盖
+              #record_suffix .flv; # 指定后缀名（可选，开启时间戳时，默认名是 推流码-1789636031.flv）
+              record_suffix -%Y%m%d-%H%M%S.av.flv; # 自定义文件名格式（可选，开启时间戳时，默认是 推流码-1789636031-自定义.flv）
+            }
+            
+            #手动录制，只录制视频无音频 video
+            recorder video_rec {
+              record video manual; # 手动录制
+              record_path /mnt/manual_recordings; # 指定存储路径
+              record_unique on;        # 文件名加时间戳，相当于自定义中的 %s，避免覆盖
+              #record_suffix .flv; # 指定后缀名（可选，开启时间戳时，默认名是 推流码-1789636031.flv）
+              record_suffix -%Y%m%d-%H%M%S.v.flv; # 自定义文件名格式（可选，开启时间戳时，默认是 推流码-1789636031-自定义.flv）
+            }
+            
+            #手动录制，只录制音频 audio
+            recorder audio_rec {
+              record audio manual; # 手动录制
+              record_path /mnt/manual_recordings; # 指定存储路径
+              record_unique on; # 文件名加时间戳，相当于自定义中的 %s，避免覆盖
+              #record_suffix .flv; # 指定后缀名（可选，开启时间戳时，默认名是 推流码-1789636031.flv）
+              record_suffix -%Y%m%d-%H%M%S.a.flv; # 自定义文件名格式（可选，开启时间戳时，默认是 推流码-1789636031-自定义.flv）
+            }
+            
             hls on; # 开启HLS
             hls_path /mnt/hls/; # HLS 切片存放路径
             hls_fragment 3; # 每个切片时长（秒），越小延迟越低，但请求越多
-            hls_playlist_length 60; # 设置 HLS 播放列表（.m3u8 文件）中包含的视频总时长（秒）
+            hls_playlist_length 60; # 设置 HLS 播放列表（推流码.m3u8 文件）中包含的视频总时长（秒）
             # 禁用以 RTMP 协议从 Nginx 服务器拉取视频流。禁用后无法通过 VLC播放器、http网页播放器观看直播
             #deny play all;
         }
