@@ -104,6 +104,72 @@ rtmp {
 }
 ```
 
+## 创建录制文件存放目录
+```
+# 1. 创建目录（如果不存在）
+mkdir -p /mnt/recordings
+mkdir -p /mnt/manual_recordings
+mkdir -p /mnt/back_recordings
+
+# 2. 查看当前 Nginx 运行用户
+ps aux | grep nginx
+# 输出类似：nobody  1234 ... nginx: worker process
+# 记住这个用户名，假设是 nobody
+
+# 3. 查看 nobody 用户所属的主组
+id nobody
+# 输出类似：uid=65534(nobody) gid=65534(nogroup) groups=65534(nogroup)
+注意看 gid=...(...) 括号里的名字，那就是你应该使用的组名
+如果显示的是 nogroup，就用 nobody:nogroup
+
+# 4. 修改目录所有者为 Nginx 运行用户
+chown -R nobody:nogroup /mnt/recordings
+chown -R nobody:nogroup /mnt/manual_recordings
+chown -R nobody:nogroup /mnt/back_recordings
+
+# 5. 赋予写入权限
+chmod 755 /mnt/recordings
+chmod 755 /mnt/manual_recordings
+chmod 755 /mnt/back_recordings
+```
+
+## nginx 配置文件中新增监听 http 8080 端口
+```
+server {
+        listen 8080; # 监听一个 HTTP 端口，避免与 Web 服务冲突
+        
+        # 【关键】在这里配置控制接口
+        location /control {
+            rtmp_control all;
+        }
+        
+        # 可选：查看统计信息
+        location /stat {
+            rtmp_stat all;
+            rtmp_stat_stylesheet stat.xsl;
+        }
+        
+        location /stat.xsl {
+            root /mnt; # stat.xsl 文件的实际路径
+            
+            # 强制设置 Content-Type 为 text/xml，告诉浏览器这是可阅读的 XML，防止下载
+            default_type text/xml;
+            
+            # 或者使用 add_header (注意：如果 default_type 生效，add_header 可能不需要，但加上更保险)
+            add_header Content-Type "text/xml; charset=utf-8";
+        }
+    }
+```
+
+## 发送命令录制
+
+```
+curl "http://x.x.x.x:8080/control/record/start?app=show&name=abc123456&rec=full_rec"
+
+curl "http://x.x.x.x:8080/control/record/stop?app=show&name=abc123456&rec=full_rec"
+```
+
+
 ### 开放服务器端口
 > 阿里云 轻量应用服务器 支持后台设置端口
 
