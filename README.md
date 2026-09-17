@@ -138,7 +138,7 @@ location / {
 	       poster="stream.png"
 	    data-setup="{}"
          >
-	     <source src="hls/stream.m3u8" type="application/x-mpegURL" />
+	     <source src="hls/abc123456.m3u8" type="application/x-mpegURL" />
 		         <p class="vjs-no-js">
 			     To view this video please enable JavaScript, and consider upgrading to a
 			         web browser that
@@ -151,4 +151,4 @@ location / {
 ```
 
 ### http://x.x.x.x 直接打开网页看直播
-> http://x.x.x.x/mnt/hls/stream.m3u8
+> http://x.x.x.x/mnt/hls/abc123456.m3u8
