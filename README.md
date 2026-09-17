@@ -122,7 +122,7 @@ id nobody
 注意看 gid=...(...) 括号里的名字，那就是你应该使用的组名
 如果显示的是 nogroup，就用 nobody:nogroup
 
-# 4. 修改目录所有者为 Nginx 运行用户
+# 4. 修改目录所有者为 Nginx 运行用户 nobody
 chown -R nobody:nogroup /mnt/recordings
 chown -R nobody:nogroup /mnt/manual_recordings
 chown -R nobody:nogroup /mnt/back_recordings
@@ -161,18 +161,20 @@ server {
     }
 ```
 
-## 发送命令录制
-> x.x.x.x:8080/control/record 命令地址，与 8080 监听块中的设置对应
+## 发送控制命令录制直播
+> x.x.x.x:8080/control 与8080监听块中的设置的控制接口对应
+>
+> /record 录制命令入口
 > 
-> start 开始录制
+> /start 开始录制
 > 
-> stop  结束录制
+> /stop  结束录制
 > 
-> app   application show {......} 中的 show 与服务器ip 组成服务器推流地址 rtmp://x.x.x.x:1935/show
+> app   表示 rtmp://x.x.x.x:1935/show 中的 show
 > 
-> name  推流码
+> name  表示 推流码
 > 
-> rec   recorder full_rec { record all manual; ......} 中的 full_rec
+> rec   表示 recorder full_rec { record all manual; ......} 块中的 full_rec
 > 
 ```
 # 开始录制
@@ -180,7 +182,6 @@ curl "http://x.x.x.x:8080/control/record/start?app=show&name=abc123456&rec=full_
 # 结束录制
 curl "http://x.x.x.x:8080/control/record/stop?app=show&name=abc123456&rec=full_rec"
 ```
-
 
 ### 开放服务器端口
 > 阿里云 轻量应用服务器 支持后台设置端口
