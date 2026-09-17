@@ -1,9 +1,10 @@
-## 一、创建服务器
+
 > 阿里云 轻量应用服务器
 > 通用型 2vCPU 2GiB ESSD云盘 40GiB
 > 北京
 > Debian12.10
-### 编译安装 nginx
+
+## 1. 编译安装 nginx
 > 加入支持 rtmp 协议的模块
 
 > 如果不行，可以试试 https://github.com/sergey-dryabzhinsky/nginx-rtmp-module.git
@@ -21,7 +22,7 @@ make -j 1 && \
 make install
 ```
 
-### 修改nginx配置文件，放在 http{......} 前
+## 2. 修改nginx配置文件，放在 http{......} 前
 > application show {......} 中的 show 与服务器ip 组成服务器推流地址 rtmp://x.x.x.x:1935/show
 
 > 编译安装nginx后，配置文件路径 /usr/local/nginx/conf/nginx.conf
@@ -104,11 +105,11 @@ rtmp {
 }
 ```
 
-## 创建录制文件存放目录
+## 3. 创建录制文件存放目录
 ```
 # 1. 创建目录（如果不存在）
-mkdir -p /mnt/recordings
-mkdir -p /mnt/manual_recordings
+mkdir -p /mnt/recordings && \
+mkdir -p /mnt/manual_recordings && \
 mkdir -p /mnt/back_recordings
 
 # 2. 查看当前 Nginx 运行用户
@@ -123,17 +124,17 @@ id nobody
 如果显示的是 nogroup，就用 nobody:nogroup
 
 # 4. 修改目录所有者为 Nginx 运行用户 nobody
-chown -R nobody:nogroup /mnt/recordings
-chown -R nobody:nogroup /mnt/manual_recordings
+chown -R nobody:nogroup /mnt/recordings && \
+chown -R nobody:nogroup /mnt/manual_recordings && \
 chown -R nobody:nogroup /mnt/back_recordings
 
 # 5. 赋予写入权限
-chmod 755 /mnt/recordings
-chmod 755 /mnt/manual_recordings
+chmod 755 /mnt/recordings && \
+chmod 755 /mnt/manual_recordings && \
 chmod 755 /mnt/back_recordings
 ```
 
-## nginx 配置文件中新增监听 http 8080 端口
+## 4. nginx 配置文件中新增监听 http 8080 端口
 ```
 server {
         listen 8080; # 监听一个 HTTP 端口，避免与 Web 服务冲突
@@ -161,7 +162,7 @@ server {
     }
 ```
 
-## 发送控制命令录制直播
+## 5. 发送控制命令录制直播
 > x.x.x.x:8080/control 与8080监听块中的设置的控制接口对应
 >
 > /record 录制命令入口
@@ -183,7 +184,7 @@ curl "http://x.x.x.x:8080/control/record/start?app=show&name=abc123456&rec=full_
 curl "http://x.x.x.x:8080/control/record/stop?app=show&name=abc123456&rec=full_rec"
 ```
 
-### 开放服务器端口
+## 6. 开放服务器端口
 > 阿里云 轻量应用服务器 支持后台设置端口
 
 > 如果是其它服务器 Ubuntu 系统，可以使用以下命令
@@ -206,7 +207,7 @@ ufw allow 80/tcp && ufw allow 1935/tcp && ufw allow 8080/tcp
 ufw allow 8000:9000/tcp
 ```
 
-## 二、运行 nginx
+## 7. 运行 nginx
 ```
 #查看配置文件有没有错误
 /usr/local/nginx/sbin/nginx -t
@@ -221,7 +222,7 @@ ufw allow 8000:9000/tcp
 /usr/local/nginx/sbin/nginx -s reload
 ```
 
-## 三、设置 obs 直播
+## 8. 设置 obs 直播
 ```
 服务器 rtmp://x.x.x.x:1935/show
 
@@ -232,7 +233,7 @@ ufw allow 8000:9000/tcp
 rtmp://x.x.x.x:1935/show/abc123456
 ```
 
-## 四、使用浏览器打开直播
+## 9. 使用浏览器打开直播
 ### 改一下配置文件
 >  注意：要把配置文件 `/usr/local/nginx/conf/nginx.conf` 中 `http{......}` 监听 80 端口的配置
 
