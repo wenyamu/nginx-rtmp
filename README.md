@@ -8,7 +8,7 @@
 
 > 如果不行，可以试试 https://github.com/sergey-dryabzhinsky/nginx-rtmp-module.git
 
-> ./configure --add-module=../nginx-rtmp-module-src 是新增模块的相对地址，记得要相应的修改
+> ./configure --add-module=../nginx-rtmp-module-src 是新增第三方模块的相对地址，记得要有相应的修改
 ```
 apt update && \
 apt install -y build-essential git libpcre3 libpcre3-dev libssl-dev zlib1g-dev && \
