@@ -38,7 +38,7 @@ rtmp {
             hls_path /mnt/hls/; # HLS 切片存放路径
             hls_fragment 3; # 每个切片时长（秒），越小延迟越低，但请求越多
             hls_playlist_length 60; # 播放列表长度
-            # 禁用以 RTMP 协议从 Nginx 服务器拉取视频流。如果开启就无法通过 VLC播放器、http网页播放器观看直播
+            # 禁用以 RTMP 协议从 Nginx 服务器拉取视频流。禁用后无法通过 VLC播放器、http网页播放器观看直播
             #deny play all;
         }
     }
