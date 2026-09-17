@@ -88,10 +88,10 @@ ufw allow 8000:9000/tcp
 服务器 rtmp://x.x.x.x:1935/show
 
 # 这里的推流码，是在推流软件上直接设置的，不是在服务器上，别人想看你的直播就必须有这个密码才行
-推流码 stream
+推流码 abc123456
 
 # 完整的 rtmp 协议，可以在支持 串流播放的本地播放器上直接看，比如：VLC media player
-rtmp://x.x.x.x:1935/show/stream
+rtmp://x.x.x.x:1935/show/abc123456
 ```
 
 ## 四、使用浏览器打开直播
