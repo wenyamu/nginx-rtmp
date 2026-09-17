@@ -162,10 +162,16 @@ server {
 ```
 
 ## 发送命令录制
-
+> x.x.x.x:8080/control/record
+> start 开始录制
+> stop  结束录制
+> app   application show {......} 中的 show 与服务器ip 组成服务器推流地址 rtmp://x.x.x.x:1935/show
+> name  推流码
+> rec   recorder full_rec { record all manual; ......} 中的 full_rec
 ```
+# 开始录制
 curl "http://x.x.x.x:8080/control/record/start?app=show&name=abc123456&rec=full_rec"
-
+# 结束录制
 curl "http://x.x.x.x:8080/control/record/stop?app=show&name=abc123456&rec=full_rec"
 ```
 
@@ -175,7 +181,7 @@ curl "http://x.x.x.x:8080/control/record/stop?app=show&name=abc123456&rec=full_r
 
 > 如果是其它服务器 Ubuntu 系统，可以使用以下命令
 
-> 此项目只需要用到 80 22 1935 这些端口
+> 此项目只需要用到 80 22 1935 8080 这些端口
 ```
 # 查看防火墙是否开启，以及开放的端口
 ufw status verbose
@@ -187,7 +193,7 @@ ufw allow 80/tcp
 ufw reload
 
 # 一次性开启多个端口
-ufw allow 80/tcp && ufw allow 1935/tcp
+ufw allow 80/tcp && ufw allow 1935/tcp && ufw allow 8080/tcp
 
 # 开放 8000 到 9000 之间的所有 TCP 端口
 ufw allow 8000:9000/tcp
