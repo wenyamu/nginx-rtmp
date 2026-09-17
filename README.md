@@ -21,8 +21,8 @@ make -j 1 && \
 make install
 ```
 
-### nginx配置文件，放在 http{ } 前
-> application show { } 中的 show 与服务器ip 组成服务器推流地址 rtmp://x.x.x.x:1935/show
+### 修改nginx配置文件，放在 http{......} 前
+> application show {......} 中的 show 与服务器ip 组成服务器推流地址 rtmp://x.x.x.x:1935/show
 
 > /usr/local/nginx/conf/nginx.conf
 ```
@@ -95,20 +95,24 @@ rtmp://x.x.x.x:1935/show/stream
 
 ## 四、使用浏览器打开直播
 ### 改一下配置文件
->  注意：要把配置文件 `/usr/local/nginx/conf/nginx.conf` 中 `http{ }` 监听 80 端口的配置
+>  注意：要把配置文件 `/usr/local/nginx/conf/nginx.conf` 中 `http{......}` 监听 80 端口的配置
 
 ```
+......
 location / {
             root   html; # 对应的是 /usr/local/nginx/html/ 目录
             index  index.html index.htm;
         }
+......
 ```
 修改成
 ```
+......
 location / {
             root   /mnt/; # 只把这里改成这样即可，对应服务器的 /mnt/
             index  index.html index.htm;
         }
+......
 ```
 
 ### 创建 html 文件
