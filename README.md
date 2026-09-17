@@ -26,20 +26,19 @@ make install
 
 > 编译安装nginx后，配置文件路径 /usr/local/nginx/conf/nginx.conf
 ```
-# RTMP configuration
+# RTMP 实时消息传输协议配置
 rtmp {
     server {
-        listen 1935; # Listen on standard RTMP port
+        listen 1935; # 监听标准RTMP端口
         chunk_size 4000;
 
         application show {
             live on;
-            # Turn on HLS
-            hls on;
-            hls_path /mnt/hls/;
+            hls on; # 开启HLS
+            hls_path /mnt/hls/; # 流缓存地址
             hls_fragment 3;
             hls_playlist_length 60;
-            # disable consuming the stream from nginx as rtmp
+            # 禁用以 RTMP 协议从 Nginx 服务器拉取视频流。如果开启就无法通过 VLC播放器、http网页播放器观看直播
             #deny play all;
         }
     }
