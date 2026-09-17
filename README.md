@@ -1,5 +1,8 @@
 ## 一、创建服务器
-> 使用 阿里云 轻量应用服务器 通用型 2vCPU 2GiB ESSD云盘 40GiB 北京 Debian12.10
+> 阿里云 轻量应用服务器
+> 通用型 2vCPU 2GiB ESSD云盘 40GiB
+> 北京
+> Debian12.10
 ### 编译安装 nginx
 > 加入支持 rtmp 协议的模块
 
