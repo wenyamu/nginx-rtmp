@@ -252,7 +252,8 @@ ufw allow 8000:9000/tcp
 /usr/local/nginx/sbin/nginx -s reload
 ```
 
-## 8. 设置 obs 直播
+## 8. 推流客户端设置
+> 推流客户端有很多，电脑端常用的 obs, ffmpeg
 ```
 服务器 rtmp://x.x.x.x:1935/show
 
@@ -261,6 +262,27 @@ ufw allow 8000:9000/tcp
 
 # 完整的 rtmp 协议，可以在支持 串流播放的本地播放器上直接看，比如：VLC media player
 rtmp://x.x.x.x:1935/show/abc123456
+
+# ffmpeg 推流设置
+ffmpeg -loglevel verbose \
+  -stream_loop -1 \
+  -re \
+  -fflags +genpts \
+  -avoid_negative_ts make_zero \
+  -i /usr/local/output-superfast5-crf18.mp4 \
+  -c copy \
+  -f flv rtmp://x.x.x.x:1935/show/abc123456
+
+# 香橙派配合usb摄像头推流（如果想采集声音，ffmpeg 必须支持 alsa）
+ffmpeg \
+-f v4l2 -input_format mjpeg -video_size 1280x720 -framerate 30 -i /dev/video0 \
+-f alsa -ar 48000 -ac 2 -i hw:3,0 \
+-c:v libx264 -tune zerolatency -preset ultrafast -pix_fmt yuv420p -g 30 \
+-b:v 4M -maxrate 8M -bufsize 16M \
+-c:a aac -b:a 64k \
+-map 0:v -map 1:a \
+-f flv "rtmp://x.x.x.x:1935/show/abc123456"
+
 ```
 
 ## 9. 使用浏览器打开直播
