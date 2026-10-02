@@ -4,7 +4,7 @@
 > 北京
 > Debian12.10
 
-## 省时版，rtmp + flv
+## 省时版
 > 开启端口和obs直播设置，以及使用 curl 录制命令，要向下看一看
 ```
 apt update && \
@@ -35,7 +35,7 @@ chmod 755 /mnt/back_recordings && \
 /usr/local/nginx/sbin/nginx
 ```
 
-## 1. 编译安装 nginx，以下步骤编译只有基础 rtmp 功能，不支持 flv
+## 1. 编译安装 nginx
 > 加入支持 rtmp 协议的模块
 
 > 如果不行，可以试试 https://github.com/sergey-dryabzhinsky/nginx-rtmp-module.git # 只有 rtmp 功能，没有 flv 功能
@@ -45,15 +45,14 @@ chmod 755 /mnt/back_recordings && \
 
 > ./configure --add-module=../nginx-rtmp-module-src 是新增第三方模块的相对地址，记得要有相应的修改
 
-> 以下代码 不支持 flv 功能
 ```
 apt update && \
 apt install -y build-essential git libpcre3 libpcre3-dev libssl-dev zlib1g-dev && \
-git clone https://github.com/nginx-with-docker/nginx-rtmp-module-src.git && \
+git clone https://github.com/winshining/nginx-http-flv-module.git && \
 wget http://nginx.org/download/nginx-1.31.6.tar.gz && \
 tar -xf nginx-1.31.6.tar.gz && \
 cd nginx-1.31.6 && \
-./configure --with-http_ssl_module --add-module=../nginx-rtmp-module-src --with-file-aio && \
+./configure --with-http_ssl_module --add-module=../nginx-http-flv-module --with-file-aio && \
 make -j 1 && \
 make install
 ```
@@ -68,13 +67,14 @@ rtmp {
     server {
         listen 1935; # 监听标准RTMP端口
         chunk_size 4000;
-        
+
+        #第一个推流地址
         application show {
             live on;
             
-            #自动录制，视频和音频, 用于监测移动物体时合成使用 1分钟一个文件
-            recorder auto_full_60 {
-              record all; # 自动录制
+            #自动录制，视频和音频, 用于监测移动物体时合成使用 10秒钟一个文件
+            recorder auto_full_10 {
+              record off; # 自动录制，all 开启视频和音频; video 开启视频; audio 开启音频; off 关闭
               record_path /mnt/recordings; # 指定存储路径
               record_unique on;        # 文件名加时间戳，相当于自定义中的 %s，避免覆盖
               
@@ -82,52 +82,18 @@ rtmp {
               #record_suffix -%Y%m%d-%H%M%S.flv; # 自定义文件名格式（可选，开启时间戳时，默认是 推流码-1789636031-自定义.flv）
               
               #这二个同时启用好像有点问题，好像不是连续录，后续再研究把前后两个视频拼起来看是否连续
-              record_interval 60; # 录制单个文件的时长（秒）自动切割一次文件，仅自动录制时有效
-              #record_max_size 10M; # 每个文件最大 10MB，超过后自动新建文件，仅自动录制时有效
-              
-            }
-            
-            
-            #自动录制，视频和音频 用于正常的监控备份 30分钟一个文件
-            recorder auto_full_1800 {
-              record all; # 自动录制
-              record_path /mnt/back_recordings; # 指定存储路径
-              record_unique on;        # 文件名加时间戳，相当于自定义中的 %s，避免覆盖
-              
-              #record_suffix .flv; # 指定后缀名（可选，开启时间戳时，默认名是 推流码-1789636031.flv）
-              #record_suffix -%Y%m%d-%H%M%S.flv; # 自定义文件名格式（可选，开启时间戳时，默认是 推流码-1789636031-自定义.flv）
-              
-              #这二个同时启用好像有点问题，好像不是连续录，后续再研究把前后两个视频拼起来看是否连续
-              record_interval 1800; # 录制单个文件的时长（秒）自动切割一次文件，仅自动录制时有效
+              record_interval 10; # 录制单个文件的时长（秒）自动切割一次文件，仅自动录制时有效
               #record_max_size 10M; # 每个文件最大 10MB，超过后自动新建文件，仅自动录制时有效
               
             }
             
             #手动录制，视频和音频 all
             recorder full_rec {
-              record all manual; # 手动录制
+              record all manual; # 手动录制，all 开启视频和音频; video 开启视频; audio 开启音频; off 关闭; manual 表示手动
               record_path /mnt/manual_recordings; # 指定存储路径
               record_unique on;        # 文件名加时间戳，相当于自定义中的 %s，避免覆盖
               #record_suffix .flv; # 指定后缀名（可选，开启时间戳时，默认名是 推流码-1789636031.flv）
               record_suffix -%Y%m%d-%H%M%S.av.flv; # 自定义文件名格式（可选，开启时间戳时，默认是 推流码-1789636031-自定义.flv）
-            }
-            
-            #手动录制，只录制视频无音频 video
-            recorder video_rec {
-              record video manual; # 手动录制
-              record_path /mnt/manual_recordings; # 指定存储路径
-              record_unique on;        # 文件名加时间戳，相当于自定义中的 %s，避免覆盖
-              #record_suffix .flv; # 指定后缀名（可选，开启时间戳时，默认名是 推流码-1789636031.flv）
-              record_suffix -%Y%m%d-%H%M%S.v.flv; # 自定义文件名格式（可选，开启时间戳时，默认是 推流码-1789636031-自定义.flv）
-            }
-            
-            #手动录制，只录制音频 audio
-            recorder audio_rec {
-              record audio manual; # 手动录制
-              record_path /mnt/manual_recordings; # 指定存储路径
-              record_unique on; # 文件名加时间戳，相当于自定义中的 %s，避免覆盖
-              #record_suffix .flv; # 指定后缀名（可选，开启时间戳时，默认名是 推流码-1789636031.flv）
-              record_suffix -%Y%m%d-%H%M%S.a.flv; # 自定义文件名格式（可选，开启时间戳时，默认是 推流码-1789636031-自定义.flv）
             }
             
             hls on; # 开启HLS
@@ -137,6 +103,29 @@ rtmp {
             # 禁用以 RTMP 协议从 Nginx 服务器拉取视频流。禁用后无法通过 VLC播放器、http网页播放器观看直播
             #deny play all;
         }
+
+        #第二个推流地址
+		application show-flv {
+            live on;
+            record off;
+            
+            # 开启 GOP 缓存，实现秒开
+            # 新观众加入时，服务器会立即发送最近的一个关键帧组，避免黑屏等待
+            gop_cache on;
+            
+            # HLS 配置 (保留作为兼容或录制用途)
+            hls on;
+            hls_path /mnt/hls2/;
+            hls_fragment 2s;
+            hls_playlist_length 10s;
+            hls_sync 100ms;
+            
+            # 其他优化
+            wait_key on;
+            wait_video on;
+        }
+        
+        
     }
 }
 ```
