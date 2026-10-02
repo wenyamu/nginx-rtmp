@@ -340,12 +340,13 @@ location / {
 
 #### 看 hls 直播
 > 可以直接打开网页  http://x.x.x.x/hls2/abc123456.m3u8
+> 
 > 可以直接打开网页播放器  http://x.x.x.x/hls-player.html
 
 #### 看 flv 直播（注意编译时使用支持 flv 的第三方模块）
 > 打开网页播放器  http://x.x.x.x/flv-player.html 填写拉流地址：http://x.x.x.x/live-flv?app=show-flv&stream=abc123456
 
-#### 电脑端播放器
+#### 电脑端播放器，比如：VLC media player - 媒体 - 打开网络串流 - 网络 - 输入网络url
 >  rtmp://x.x.x.x:1935/show-flv/abc123456
 
 #### 查看数据
