@@ -4,7 +4,7 @@
 > 北京
 > Debian12.10
 
-## 省时版
+## 省时版，rtmp + flv
 > 开启端口和obs直播设置，以及使用 curl 录制命令，要向下看一看
 ```
 apt update && \
@@ -13,15 +13,15 @@ cd /root && \
 git clone https://github.com/wenyamu/nginx-rtmp.git && \
 cd nginx-rtmp && \
 tar -xf nginx-1.31.6.tar.gz && \
-unzip nginx-rtmp-module-src-master.zip && \
+unzip nginx-http-flv-module-master.zip && \
 cd nginx-1.31.6 && \
-./configure --with-http_ssl_module --add-module=../nginx-rtmp-module-src-master --with-file-aio && \
+./configure --with-http_ssl_module --add-module=../nginx-http-flv-module-master --with-file-aio && \
 make -j 1 && \
 make install && \
 cd /root/nginx-rtmp && \
 cp -f index.html /mnt/index.html && \
 cp -f nginx.conf /usr/local/nginx/conf/nginx.conf && \
-cp -f nginx-rtmp-module-src-master/stat.xsl /mnt/stat.xsl && \
+cp -f nginx-http-flv-module-master/stat.xsl /mnt/stat.xsl && \
 mkdir -p /mnt/recordings && \
 mkdir -p /mnt/manual_recordings && \
 mkdir -p /mnt/back_recordings && \
@@ -34,12 +34,17 @@ chmod 755 /mnt/back_recordings && \
 /usr/local/nginx/sbin/nginx
 ```
 
-## 1. 编译安装 nginx
+## 1. 编译安装 nginx，以下步骤编译只有基础 rtmp 功能，不支持 flv
 > 加入支持 rtmp 协议的模块
 
-> 如果不行，可以试试 https://github.com/sergey-dryabzhinsky/nginx-rtmp-module.git
+> 如果不行，可以试试 https://github.com/sergey-dryabzhinsky/nginx-rtmp-module.git # 只有 rtmp 功能，flv 功能
+> https://github.com/nginx-with-docker/nginx-rtmp-module-src.git # 这个也是只有 rtmp 功能，flv 功能
+
+> https://github.com/winshining/nginx-http-flv-module.git # rtmp + flv 功能，装上这个之后，上面的就不用装了
 
 > ./configure --add-module=../nginx-rtmp-module-src 是新增第三方模块的相对地址，记得要有相应的修改
+
+> 以下代码 不支持 flv 功能
 ```
 apt update && \
 apt install -y build-essential git libpcre3 libpcre3-dev libssl-dev zlib1g-dev && \
@@ -167,7 +172,7 @@ chmod 755 /mnt/back_recordings
 ## 4. nginx 配置文件中新增监听 http 8080 端口
 ```
 server {
-        listen 8080; # 监听一个 HTTP 端口，避免与 Web 服务冲突
+        listen 81; # 监听一个 HTTP 端口，避免与 Web 服务冲突
         
         # 【关键】在这里配置控制接口
         location /control {
@@ -193,7 +198,7 @@ server {
 ```
 
 ## 5. 发送控制命令录制直播
-> x.x.x.x:8080/control 与8080监听块中的设置的控制接口对应
+> x.x.x.x:81/control 与81监听块中的设置的控制接口对应
 >
 > /record 录制命令入口
 > 
@@ -209,9 +214,9 @@ server {
 > 
 ```
 # 开始录制
-curl "http://x.x.x.x:8080/control/record/start?app=show&name=abc123456&rec=full_rec"
+curl "http://x.x.x.x:81/control/record/start?app=show&name=abc123456&rec=full_rec"
 # 结束录制
-curl "http://x.x.x.x:8080/control/record/stop?app=show&name=abc123456&rec=full_rec"
+curl "http://x.x.x.x:81/control/record/stop?app=show&name=abc123456&rec=full_rec"
 ```
 
 ## 6. 开放服务器端口
@@ -219,7 +224,7 @@ curl "http://x.x.x.x:8080/control/record/stop?app=show&name=abc123456&rec=full_r
 
 > 如果是其它服务器 Ubuntu 系统，可以使用以下命令
 
-> 此项目只需要用到 80 22 1935 8080 这些端口
+> 此项目只需要用到 80 22 1935 81 这些端口
 ```
 # 查看防火墙是否开启，以及开放的端口
 ufw status verbose
