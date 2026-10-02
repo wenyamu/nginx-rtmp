@@ -19,7 +19,8 @@ cd nginx-1.31.6 && \
 make -j 1 && \
 make install && \
 cd /root/nginx-rtmp && \
-cp -f index.html /mnt/index.html && \
+cp -f hls-player.html /mnt/hls-player.html && \
+cp -f flv-player.html /mnt/flv-player.html && \
 cp -f nginx.conf /usr/local/nginx/conf/nginx.conf && \
 cp -f nginx-http-flv-module-master/stat.xsl /mnt/stat.xsl && \
 mkdir -p /mnt/recordings && \
@@ -169,7 +170,7 @@ chmod 755 /mnt/manual_recordings && \
 chmod 755 /mnt/back_recordings
 ```
 
-## 4. nginx 配置文件中新增监听 http 8080 端口
+## 4. nginx 配置文件中新增监听 http 81 端口
 ```
 server {
         listen 81; # 监听一个 HTTP 端口，避免与 Web 服务冲突
@@ -236,7 +237,7 @@ ufw allow 80/tcp
 ufw reload
 
 # 一次性开启多个端口
-ufw allow 80/tcp && ufw allow 1935/tcp && ufw allow 8080/tcp
+ufw allow 80/tcp && ufw allow 1935/tcp && ufw allow 81/tcp
 
 # 开放 8000 到 9000 之间的所有 TCP 端口
 ufw allow 8000:9000/tcp
@@ -347,8 +348,16 @@ location / {
 ```
 
 ### 看直播
-> 可以直接打开网页  http://x.x.x.x 点击看直播
->
-> 也可以通过播放器打开 http://x.x.x.x/hls/abc123456.m3u8 或 rtmp://x.x.x.x:1935/show/abc123456 看直播
->
-> 还可以通过 http://x.x.x.x:8080/stat 查看数据
+
+#### 看 hls 直播
+> 可以直接打开网页  http://x.x.x.x/hls2/abc123456.m3u8
+> 可以直接打开网页播放器  http://x.x.x.x/hls-player.html
+
+#### 看 flv 直播（注意编译时使用支持 flv 的第三方模块）
+> 打开网页播放器  http://x.x.x.x/flv-player.html 填写拉流地址：http://x.x.x.x/live-flv?app=show-flv&stream=abc123456
+
+#### 电脑端播放器
+>  rtmp://x.x.x.x:1935/show-flv/abc123456
+
+#### 查看数据
+> 通过 http://x.x.x.x:81/stat 查看数据
