@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>香橙派监控直播</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #1a1a1a;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 1280px;
+        }
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        video {
+            width: 100%;
+            display: block;
+        }
+        .status {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.7);
+            color: #ff4444;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: none;
+        }
+        .status.online {
+            color: #44ff44;
+            display: block;
+        }
+        .status.offline {
+            color: #ff4444;
+            display: block;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background: #2196F3;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!--<h1>实时监控</h1>-->
+        <div class="video-wrapper">
+            <video id="video" controls autoplay muted playsinline></video>
+            <div id="status" class="status offline">🔴 连接中...</div>
+        </div>
+        <!---->
+        <div class="controls">
+            <button onclick="video.play()">▶️ 播放</button>
+            <button onclick="video.pause()">⏸️ 暂停</button>
+            <button onclick="location.reload()">🔄 刷新</button>
+            <button onclick="video.requestFullscreen()">⛶ 全屏</button>
+        </div>
+        
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const status = document.getElementById('status');
+        let hls;
+        const m3u8Url = 'hls2/abc123456.m3u8'; // m3u8文件路径，和html同目录
+
+        function initPlayer() {
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    debug: false,
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    liveSyncDurationCount: 3, // 低延迟模式
+                    maxBufferLength: 30,
+                });
+                hls.loadSource(m3u8Url);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    status.textContent = "🟢 直播中";
+                    status.className = "status online";
+                    video.play().catch(e => console.log("自动播放被浏览器阻止"));
+                });
+
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        status.textContent = "🔴 连接断开，正在重连...";
+                        status.className = "status offline";
+                        switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                hls.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                initPlayer(); // 严重错误重启播放器
+                                break;
+                        }
+                    }
+                });
+            }
+            // Safari原生支持HLS
+            else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = m3u8Url;
+                video.addEventListener('loadedmetadata', function() {
+                    status.textContent = "🟢 直播中";
+                    status.className = "status online";
+                    video.play();
+                });
+            }
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', initPlayer);
+    </script>
+</body>
+</html>
