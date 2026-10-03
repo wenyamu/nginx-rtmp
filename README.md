@@ -43,7 +43,7 @@ chmod 755 /mnt/back_recordings && \
 
 > https://github.com/winshining/nginx-http-flv-module.git # rtmp + flv 功能，装上这个之后，上面的就不用装了
 
-> ./configure --add-module=../nginx-rtmp-module-src 是新增第三方模块的相对地址，记得要有相应的修改
+> ./configure --add-module=../nginx-http-flv-module 是新增第三方模块的相对地址，记得要有相应的修改
 
 ```
 apt update && \
