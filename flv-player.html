@@ -252,6 +252,9 @@
 
         window.onload = () => {
             if (flvjs.isSupported()) console.log('flv.js 支持正常');
+            // 页面加载完成后立刻锁死视频尺寸，防止不规则尺寸的视频无法完整显示
+            videoElement.style.width = '100%';
+            videoElement.style.height = '100%';
         };
     </script>
 </body>
