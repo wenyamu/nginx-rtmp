@@ -39,6 +39,7 @@ chmod 755 /mnt/back_recordings && \
 > 加入支持 rtmp 协议的模块
 
 > 如果不行，可以试试 https://github.com/sergey-dryabzhinsky/nginx-rtmp-module.git # 只有 rtmp 功能，没有 flv 功能
+
 > https://github.com/nginx-with-docker/nginx-rtmp-module-src.git # 这个也是只有 rtmp 功能，没有 flv 功能
 
 > https://github.com/winshining/nginx-http-flv-module.git # rtmp + flv 功能，装上这个之后，上面的就不用装了
