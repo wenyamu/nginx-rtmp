@@ -1,0 +1,537 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HLS 真实实时监控面板</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- HLS.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { bg: '#0f172a', panel: '#1e293b', border: '#334155' },
+                        light: { bg: '#f3f4f6', panel: '#ffffff', border: '#e5e7eb' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        
+        /* 玻璃拟态 */
+        .glass { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        
+        /* 选中态高亮 */
+        .level-item.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-left: 3px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .light .level-item.active {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+        }
+
+        /* 动画 */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+        .status-dot::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: inherit;
+            border-radius: 50%;
+            z-index: -1;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-light-bg text-gray-800 dark:bg-dark-bg dark:text-gray-100 transition-colors duration-300 min-h-screen flex flex-col font-sans">
+
+    <!-- 顶部导航 -->
+    <header class="bg-light-panel dark:bg-dark-panel border-b border-light-border dark:border-dark-border px-6 py-4 shadow-sm z-20 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-satellite-dish text-blue-500 text-xl"></i>
+                <h1 class="text-lg font-bold tracking-wide">HLS RealMonitor</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div id="connection-badge" class="flex items-center space-x-2 px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium transition-colors">
+                    <div class="relative w-2 h-2 rounded-full bg-gray-400 status-dot-container">
+                        <div id="status-dot" class="w-2 h-2 rounded-full bg-gray-400 status-dot"></div>
+                    </div>
+                    <span id="status-text">初始化</span>
+                </div>
+                <button id="theme-toggle" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow p-4 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- 左侧：视频与图表 (占8列) -->
+        <div class="lg:col-span-8 space-y-6">
+            <!-- 视频播放器 -->
+            <div class="relative rounded-2xl overflow-hidden shadow-lg aspect-video group">
+                <video id="video" controls autoplay muted playsinline class="w-full h-full object-cover block"></video>
+                <!-- OSD 信息 -->
+                <div class="absolute top-4 left-4 bg-black/50 glass px-3 py-1.5 rounded-md text-xs font-mono text-green-400 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity select-none">
+                    <div id="osd-info">LIVE | --x-- | -- FPS</div>
+                </div>
+            </div>
+
+            <!-- 实时图表 -->
+            <div class="bg-light-panel dark:bg-dark-panel border border-light-border dark:border-dark-border rounded-2xl p-4 shadow-sm transition-colors duration-300 h-64 flex flex-col">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400"><i class="fa-solid fa-chart-area mr-2"></i>质量波动监控</h3>
+                    <div class="flex space-x-4 text-xs">
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>延迟(ms)</span>
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-green-500 mr-1"></span>码率(Mbps)</span>
+                    </div>
+                </div>
+                <div class="flex-grow relative w-full h-full">
+                    <canvas id="qualityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：数据面板 (占4列) -->
+        <div class="lg:col-span-4 space-y-6">
+            
+            <!-- 核心四宫格 -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-light-panel dark:bg-dark-panel border border-light-border dark:border-dark-border p-4 rounded-2xl shadow-sm transition-colors duration-300">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">直播延迟</div>
+                    <div class="text-2xl font-bold text-blue-500 font-mono"><span id="val-latency">--</span> <span class="text-sm text-gray-400">ms</span></div>
+                </div>
+                <div class="bg-light-panel dark:bg-dark-panel border border-light-border dark:border-dark-border p-4 rounded-2xl shadow-sm transition-colors duration-300">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">缓冲水位</div>
+                    <div class="text-2xl font-bold text-purple-500 font-mono"><span id="val-buffer">--</span> <span class="text-sm text-gray-400">s</span></div>
+                </div>
+                <div class="bg-light-panel dark:bg-dark-panel border border-light-border dark:border-dark-border p-4 rounded-2xl shadow-sm transition-colors duration-300">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">当前码率</div>
+                    <div class="text-2xl font-bold text-green-500 font-mono"><span id="val-bitrate">--</span> <span class="text-sm text-gray-400">Mbps</span></div>
+                </div>
+                <div class="bg-light-panel dark:bg-dark-panel border border-light-border dark:border-dark-border p-4 rounded-2xl shadow-sm transition-colors duration-300">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">码率对应的下载速度</div>
+                    <div class="text-2xl font-bold text-orange-500 font-mono"><span id="val-throughput">--</span> <span class="text-sm text-gray-400">MB/s</span></div>
+                </div>
+            </div>
+
+            <!-- 详细技术指标
+            <div class="bg-light-panel dark:bg-dark-panel border border-light-border dark:border-dark-border rounded-2xl p-5 shadow-sm transition-colors duration-300">
+                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">技术细节</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">分辨率</span>
+                        <span class="font-mono text-gray-800 dark:text-gray-200" id="detail-res">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">渲染帧率</span>
+                        <span class="font-mono text-gray-800 dark:text-gray-200" id="detail-fps">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">累计丢帧</span>
+                        <span class="font-mono text-red-500" id="detail-dropped">0</span>
+                    </div>
+                    
+                </div>
+            </div>
+            -->
+            <!-- 清晰度切换列表 -->
+            <div class="bg-light-panel dark:bg-dark-panel border border-light-border dark:border-dark-border rounded-2xl p-5 shadow-sm transition-colors duration-300">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200">可用清晰度</h3>
+                    <span class="text-xs text-blue-500 cursor-pointer hover:underline" onclick="setAutoLevel()">设为自动</span>
+                </div>
+                <div id="levels-container" class="space-y-1 max-h-60 overflow-y-auto pr-1">
+                    <div class="text-xs text-gray-400 p-2">此直播无其它清晰度！</div>
+                </div>
+            </div>
+
+            <!-- 系统日志 -->
+            <div class="bg-light-panel dark:bg-dark-panel border border-light-border dark:border-dark-border rounded-2xl p-4 shadow-sm transition-colors duration-300">
+                <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">事件记录</h3>
+                <div id="log-box" class="h-44 overflow-y-auto text-xs font-mono space-y-1 bg-gray-100 dark:bg-black/30 p-2 rounded border border-gray-200 dark:border-gray-700">
+                    <!-- Logs go here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ================= 配置区域 =================
+        const CONFIG = {
+            // 默认使用一个公开稳定的测试流，确保你能看到画面
+            // 请替换为你自己的 m3u8 地址
+            // url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', 
+            url: 'http://39.96.29.167/hls2/abc123456.m3u8', 
+            chartPoints: 50
+        };
+
+        // ================= 全局状态 =================
+        let hls;
+        let chart;
+        let video = document.getElementById('video');
+        let isDark = false;
+        
+        // 统计数据
+        let stats = {
+            startTime: 0,
+            startupMeasured: false,
+            lastFpsTime: 0,
+            currentFps: 0,
+            totalDropped: 0
+        };
+
+        // ================= 1. 主题切换逻辑 (真实可用) =================
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const htmlEl = document.documentElement;
+        const themeIcon = themeToggleBtn.querySelector('i');
+
+        function toggleTheme() {
+            isDark = !isDark;
+            if (isDark) {
+                htmlEl.classList.add('dark');
+                htmlEl.classList.remove('light');
+                themeIcon.className = 'fa-solid fa-sun';
+            } else {
+                htmlEl.classList.remove('dark');
+                htmlEl.classList.add('light');
+                themeIcon.className = 'fa-solid fa-moon';
+            }
+            // 更新图表颜色
+            updateChartTheme();
+        }
+        themeToggleBtn.addEventListener('click', toggleTheme);
+
+        // ================= 2. 日志系统 =================
+        function log(msg, type = 'INFO') {
+            const box = document.getElementById('log-box');
+            const div = document.createElement('div');
+            const time = new Date().toLocaleTimeString().split(' ')[0];
+            let color = 'text-gray-500';
+            if (type === 'ERROR') color = 'text-red-500';
+            if (type === 'WARN') color = 'text-yellow-600 dark:text-yellow-400';
+            if (type === 'SUCCESS') color = 'text-green-600 dark:text-green-400';
+            
+            div.className = `${color} break-all`;
+            div.innerHTML = `<span class="opacity-50">[${time}]</span> ${msg}`;
+            box.prepend(div);
+            if (box.children.length > 30) box.lastChild.remove();
+        }
+
+        // ================= 3. 图表初始化 =================
+        function initChart() {
+            const ctx = document.getElementById('qualityChart').getContext('2d');
+            const gridColor = isDark ? '#334155' : '#e5e7eb';
+            const textColor = isDark ? '#94a3b8' : '#6b7280';
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(CONFIG.chartPoints).fill(''),
+                    datasets: [
+                        {
+                            label: 'Latency',
+                            data: Array(CONFIG.chartPoints).fill(null),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            yAxisID: 'y',
+                            tension: 0.3,
+                            pointRadius: 0,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Bitrate',
+                            data: Array(CONFIG.chartPoints).fill(null),
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            yAxisID: 'y1',
+                            tension: 0.3,
+                            pointRadius: 0,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            type: 'linear', display: true, position: 'left',
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, font: {size: 10} }
+                        },
+                        y1: { 
+                            type: 'linear', display: true, position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: textColor, font: {size: 10} }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartTheme() {
+            if (!chart) return;
+            const gridColor = isDark ? '#334155' : '#e5e7eb';
+            const textColor = isDark ? '#94a3b8' : '#6b7280';
+            chart.options.scales.y.grid.color = gridColor;
+            chart.options.scales.y.ticks.color = textColor;
+            chart.options.scales.y1.ticks.color = textColor;
+            chart.update();
+        }
+
+        function pushChartData(latency, bitrate) {
+            if (!chart) return;
+            chart.data.labels.shift();
+            chart.data.labels.push(new Date().toLocaleTimeString());
+            
+            chart.data.datasets[0].data.shift();
+            chart.data.datasets[0].data.push(latency);
+            
+            chart.data.datasets[1].data.shift();
+            chart.data.datasets[1].data.push(bitrate);
+            
+            chart.update('none');
+        }
+
+        // ================= 4. HLS 播放器核心逻辑 =================
+        function initPlayer() {
+            log('正在初始化 HLS.js...');
+            stats.startTime = performance.now();
+
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    debug: false,
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    liveSyncDurationCount: 3,
+                });
+
+                hls.loadSource(CONFIG.url);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                    log(`清单解析成功，共 ${data.levels.length} 个层级`, 'SUCCESS');
+                    
+                    if (data.levels.length > 1){
+                      renderLevels(data.levels);
+                    }
+                    
+                    updateStatus('online', '直播中');
+                });
+
+                hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+                    const level = hls.levels[data.level];
+                    highlightLevel(data.level);
+                    
+                    if (data.levels.length > 1){
+                      log(`成功切换至: ${level.width} x ${level.height} (${(level.bitrate/1000000).toFixed(1)}M)`);
+                    }
+                    
+                });
+
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        updateStatus('error', '错误');
+                        log(`Fatal Error: ${data.type}`, 'ERROR');
+                        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+                        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+                        else hls.destroy();
+                    }
+                });
+
+                video.play().catch(e => log('自动播放被拦截，请手动播放', 'WARN'));
+
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = CONFIG.url;
+                video.addEventListener('loadedmetadata', () => {
+                    video.play();
+                    updateStatus('online', 'Native');
+                });
+            }
+        }
+
+        // ================= 5. UI 辅助函数 =================
+        function updateStatus(state, text) {
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const badge = document.getElementById('connection-badge');
+            
+            txt.textContent = text;
+            
+            if (state === 'online') {
+                dot.className = 'w-2 h-2 rounded-full bg-green-500 status-dot';
+                badge.className = 'flex items-center space-x-2 px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium transition-colors border border-green-200 dark:border-green-800';
+            } else if (state === 'error') {
+                dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                badge.className = 'flex items-center space-x-2 px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-medium transition-colors border border-red-200 dark:border-red-800';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-gray-400';
+                badge.className = 'flex items-center space-x-2 px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium transition-colors';
+            }
+        }
+
+        function renderLevels(levels) {
+            const container = document.getElementById('levels-container');
+            container.innerHTML = '';
+            
+            // 【修改点】
+            // 为 id="levels-container" 的元素加上样式 style="display: flex; flex-direction: column-reverse;"
+            // 这样最后 appendChild 的元素会显示在最上面
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column-reverse';
+            
+            // 以下原样不变
+            levels.forEach((level, index) => {
+                const div = document.createElement('div');
+                div.className = 'level-item flex justify-between items-center p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-sm';
+                div.dataset.index = index;
+                
+                div.innerHTML = `
+                    <span class="font-medium">${level.width} x ${level.height}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">${(level.bitrate/1000000).toFixed(2)} Mbps</span>
+                `;
+                div.onclick = () => {
+                    hls.currentLevel = index;
+                    log(`手动切换至: ${level.width} x ${level.height}`);
+                };
+                container.appendChild(div);
+                
+            });
+        }
+
+        function highlightLevel(index) {
+            const items = document.querySelectorAll('.level-item');
+            items.forEach(item => {
+                if (parseInt(item.dataset.index) === index) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        function setAutoLevel() {
+            if(hls) {
+                hls.currentLevel = -1;
+                log('已设为自动码率', 'INFO');
+                const items = document.querySelectorAll('.level-item');
+                items.forEach(item => item.classList.remove('active'));
+            }
+        }
+
+        // ================= 6. 实时统计循环 (每秒执行) =================
+        setInterval(() => {
+            if (!video) return;
+
+            // 1. 延迟 & 缓冲
+            if (video.buffered.length > 0) {
+                const end = video.buffered.end(video.buffered.length - 1);
+                const latency = Math.round((end - video.currentTime) * 1000);
+                const buffer = (end - video.currentTime).toFixed(1);
+                
+                document.getElementById('val-latency').textContent = latency;
+                document.getElementById('val-buffer').textContent = buffer;
+                
+                // 更新 OSD
+                if(video.videoWidth) {
+                    document.getElementById('osd-info').textContent = 
+                        `LIVE | ${video.videoWidth}x${video.videoHeight} | ${stats.currentFps.toFixed(0)} FPS`;
+                    
+                    // 更新分辨率
+                    // document.getElementById('detail-res').textContent = `${video.videoWidth}x${video.videoHeight}`;
+                    
+                    // 更新帧率
+                    // document.getElementById('detail-fps').textContent = stats.currentFps.toFixed(0);
+                }
+
+                // 获取当前层级的标称码率用于图表（比瞬时更稳定）
+                let chartBitrate = 0;
+                if (hls && hls.currentLevel !== -1 && hls.levels[hls.currentLevel]) {
+                    chartBitrate = hls.levels[hls.currentLevel].bitrate / 1000000;
+                }
+                pushChartData(latency, chartBitrate);
+                
+                // 更新码率
+                document.getElementById('val-bitrate').textContent = chartBitrate.toFixed(2);
+                
+                // 更新下载速度，直接由码率换算
+                const throughput = chartBitrate / 8 ;
+                document.getElementById('val-throughput').textContent = throughput.toFixed(2);
+            }
+
+            // 2. 丢帧统计
+            if (video.getVideoPlaybackQuality) {
+                const q = video.getVideoPlaybackQuality();
+                // 某些浏览器只有 totalVideoFrames 和 droppedVideoFrames
+                const dropped = q.droppedVideoFrames || 0;
+                if (dropped > stats.totalDropped) {
+                    stats.totalDropped = dropped;
+                    
+                    // 更新丢帧数
+                    // document.getElementById('detail-dropped').textContent = stats.totalDropped;
+                }
+            }
+
+        }, 1000);
+
+        // ================= 7. 高精度帧率测量 =================
+        function measureFps(now, metadata) {
+            if (stats.lastFpsTime > 0) {
+                const delta = now - stats.lastFpsTime;
+                if (delta > 0) {
+                    const instant = 1000 / delta;
+                    // 平滑处理
+                    stats.currentFps = stats.currentFps * 0.8 + instant * 0.2;
+                    
+                }
+            }
+            stats.lastFpsTime = now;
+            if (video.requestVideoFrameCallback) {
+                video.requestVideoFrameCallback(measureFps);
+            }
+        }
+        
+        video.addEventListener('play', () => {
+            if (video.requestVideoFrameCallback) {
+                video.requestVideoFrameCallback(measureFps);
+            }
+        });
+
+        // 启动
+        window.addEventListener('load', () => {
+            initChart();
+            initPlayer();
+        });
+        
+    </script>
+</body>
+</html>
