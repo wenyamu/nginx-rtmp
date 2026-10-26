@@ -96,7 +96,7 @@
             <div class="relative rounded-2xl overflow-hidden shadow-lg aspect-video group">
                 <video id="video" controls autoplay muted playsinline class="w-full h-full object-cover block"></video>
                 <!-- OSD 信息 -->
-                <div class="absolute top-4 left-4 bg-black/50 glass px-3 py-1.5 rounded-md text-xs font-mono text-green-400 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity select-none">
+                <div class="absolute top-4 right-4 bg-black/50 glass px-3 py-1.5 rounded-md text-xs font-mono text-green-400 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity select-none">
                     <div id="osd-info">LIVE | --x-- | -- FPS</div>
                 </div>
             </div>
@@ -186,7 +186,7 @@
             // 默认使用一个公开稳定的测试流，确保你能看到画面
             // 请替换为你自己的 m3u8 地址
             url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', 
-            // url: 'http://x.x.x.x/hls2/abc123456.m3u8', 
+            // url: 'http://0.0.0.0/hls2/abc123456.m3u8', 
             chartPoints: 50
         };
 
